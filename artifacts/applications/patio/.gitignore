@@ -1,0 +1,47 @@
+# Ignore compiled/built files
+bin/
+obj/
+dist/
+build/
+
+# Ignore dependency files
+node_modules/
+packages/
+.venv/
+venv/
+env/
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore sensitive files
+*.key
+*.pem
+secrets.json
+.env
+.env.local
+
+# Ignore temporary files
+*.tmp
+*.swp
+*.bak
+~*
+
+# Ignore test outputs
+coverage/
+test-results/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Bicep-specific
+*.bicepparam~

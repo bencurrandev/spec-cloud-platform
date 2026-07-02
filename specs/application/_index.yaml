@@ -13,10 +13,35 @@ metadata:
   description: "All applications adopting category-based specifications"
   version: "1.0.0-draft"
   created: "2026-02-07"
-  application-count: 0
+  last-updated: "2026-02-19"
+  application-count: 1
 
 # Application adopters
-applications: []
+applications:
+  - app-id: app-patio-001
+    app-name: "Patio"
+    version: "1.0.0"
+    status: "draft"
+    created: "2026-02-19"
+    tier: application
+    file: patio/spec.md
+    description: "Patio application - constrained by 21 upstream specifications"
+    adheres-to:
+      - tier: platform
+        count: 6
+        note: "Foundational standards (spec format, IaC linting, policy, artifact org)"
+      - tier: business
+        count: 3
+        note: "Cost baselines, governance, compliance (NIST 800-171)"
+      - tier: security
+        count: 3
+        note: "Data protection, access control, audit logging"
+      - tier: infrastructure
+        count: 5
+        note: "Compute SKUs, networking, storage, CI/CD, IaC modules"
+      - tier: devops
+        count: 4
+        note: "Observability, environments, deployment, CI/CD orchestration"
 
 # No applications currently registered
 # 

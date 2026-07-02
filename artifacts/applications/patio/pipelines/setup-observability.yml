@@ -1,0 +1,414 @@
+# =============================================================================
+# Patio Application - Observability Setup Pipeline
+# =============================================================================
+# Purpose: Deploy monitoring, logging, and alerting infrastructure
+# Compliance: obs-001 (observability), audit-001 (logging)
+# =============================================================================
+
+name: Setup Observability
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to configure'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  LOCATION: 'eastus'
+
+jobs:
+  # ===========================================================================
+  # JOB: Deploy Monitoring Infrastructure
+  # ===========================================================================
+  deploy-monitoring:
+    name: Deploy Monitoring Stack
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set environment variables
+        run: |
+          ENV=${{ github.event.inputs.environment }}
+          echo "RESOURCE_GROUP=rg-patio-$ENV" >> $GITHUB_ENV
+          echo "LOG_ANALYTICS_NAME=log-patio-$ENV" >> $GITHUB_ENV
+          echo "APP_INSIGHTS_NAME=appi-patio-$ENV" >> $GITHUB_ENV
+          echo "ACTION_GROUP_NAME=ag-patio-$ENV" >> $GITHUB_ENV
+
+      - name: Create Log Analytics Workspace
+        run: |
+          echo "Creating Log Analytics workspace..."
+          az monitor log-analytics workspace create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.LOG_ANALYTICS_NAME }} \
+            --location ${{ env.LOCATION }} \
+            --retention-time 90 \
+            --tags \
+              Environment=${{ github.event.inputs.environment }} \
+              Application=patio \
+              Purpose=centralized-logging
+
+          # Get workspace ID
+          WORKSPACE_ID=$(az monitor log-analytics workspace show \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.LOG_ANALYTICS_NAME }} \
+            --query id -o tsv)
+          
+          echo "WORKSPACE_ID=$WORKSPACE_ID" >> $GITHUB_ENV
+          echo "✅ Log Analytics workspace created"
+
+      - name: Create Application Insights
+        run: |
+          echo "Creating Application Insights instance..."
+          az monitor app-insights component create \
+            --app ${{ env.APP_INSIGHTS_NAME }} \
+            --location ${{ env.LOCATION }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace ${{ env.WORKSPACE_ID }} \
+            --kind web \
+            --application-type web \
+            --tags \
+              Environment=${{ github.event.inputs.environment }} \
+              Application=patio
+
+          # Get instrumentation key
+          INSTRUMENTATION_KEY=$(az monitor app-insights component show \
+            --app ${{ env.APP_INSIGHTS_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query instrumentationKey -o tsv)
+          
+          echo "INSTRUMENTATION_KEY=$INSTRUMENTATION_KEY" >> $GITHUB_ENV
+          echo "✅ Application Insights created"
+
+      - name: Configure diagnostic settings for all resources
+        run: |
+          echo "Configuring diagnostic settings..."
+          
+          # Get all resource IDs in the resource group
+          RESOURCE_IDS=$(az resource list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[].id" -o tsv)
+          
+          for RESOURCE_ID in $RESOURCE_IDS; do
+            RESOURCE_NAME=$(basename $RESOURCE_ID)
+            
+            echo "Configuring diagnostics for: $RESOURCE_NAME"
+            
+            # Enable diagnostic settings (send to Log Analytics)
+            az monitor diagnostic-settings create \
+              --name "send-to-log-analytics" \
+              --resource $RESOURCE_ID \
+              --workspace ${{ env.WORKSPACE_ID }} \
+              --logs '[{"category":"allLogs","enabled":true}]' \
+              --metrics '[{"category":"AllMetrics","enabled":true}]' \
+              2>/dev/null || echo "Skipped: $RESOURCE_NAME"
+          done
+          
+          echo "✅ Diagnostic settings configured"
+
+      - name: Create alert action group
+        run: |
+          echo "Creating alert action group..."
+          az monitor action-group create \
+            --name ${{ env.ACTION_GROUP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --short-name "patio-${{ github.event.inputs.environment }}" \
+            --email-receiver \
+              name=admin-email \
+              email-address=${{ secrets.ADMIN_EMAIL }} \
+              use-common-alert-schema=true
+          
+          echo "✅ Action group created"
+
+      - name: Create metric alerts
+        run: |
+          echo "Creating metric alerts..."
+          
+          ENV=${{ github.event.inputs.environment }}
+          RG=${{ env.RESOURCE_GROUP }}
+          ACTION_GROUP_ID=$(az monitor action-group show \
+            --name ${{ env.ACTION_GROUP_NAME }} \
+            --resource-group $RG \
+            --query id -o tsv)
+          
+          # Alert 1: High CPU usage on VMs
+          az monitor metrics alert create \
+            --name "patio-$ENV-high-cpu" \
+            --resource-group $RG \
+            --scopes $(az vm list -g $RG --query "[].id" -o tsv) \
+            --condition "avg Percentage CPU > 80" \
+            --window-size 5m \
+            --evaluation-frequency 1m \
+            --action $ACTION_GROUP_ID \
+            --description "Alert when VM CPU exceeds 80%"
+          
+          # Alert 2: High error rate
+          az monitor metrics alert create \
+            --name "patio-$ENV-high-error-rate" \
+            --resource-group $RG \
+            --scopes ${{ env.WORKSPACE_ID }} \
+            --condition "total exceptions/requests > 5" \
+            --window-size 5m \
+            --evaluation-frequency 1m \
+            --action $ACTION_GROUP_ID \
+            --description "Alert when error rate exceeds 5%"
+          
+          # Alert 3: Slow response time
+          az monitor metrics alert create \
+            --name "patio-$ENV-slow-response" \
+            --resource-group $RG \
+            --scopes ${{ env.WORKSPACE_ID }} \
+            --condition "avg requests/duration > 2000" \
+            --window-size 5m \
+            --evaluation-frequency 1m \
+            --action $ACTION_GROUP_ID \
+            --description "Alert when avg response time exceeds 2 seconds"
+          
+          echo "✅ Metric alerts created"
+
+      - name: Create log query alerts
+        run: |
+          echo "Creating log query alerts..."
+          
+          ENV=${{ github.event.inputs.environment }}
+          RG=${{ env.RESOURCE_GROUP }}
+          WORKSPACE_ID=${{ env.WORKSPACE_ID }}
+          ACTION_GROUP_ID=$(az monitor action-group show \
+            --name ${{ env.ACTION_GROUP_NAME }} \
+            --resource-group $RG \
+            --query id -o tsv)
+          
+          # Alert 4: Application errors
+          az monitor scheduled-query create \
+            --name "patio-$ENV-application-errors" \
+            --resource-group $RG \
+            --scopes $WORKSPACE_ID \
+            --condition "count 'union AppTraces, AppExceptions | where SeverityLevel >= 3' > 10" \
+            --condition-query "union AppTraces, AppExceptions | where SeverityLevel >= 3" \
+            --window-size 5m \
+            --evaluation-frequency 5m \
+            --action-groups $ACTION_GROUP_ID \
+            --description "Alert on application errors"
+          
+          # Alert 5: Failed logins
+          az monitor scheduled-query create \
+            --name "patio-$ENV-failed-logins" \
+            --resource-group $RG \
+            --scopes $WORKSPACE_ID \
+            --condition "count 'AppTraces | where Message contains \"login failed\"' > 5" \
+            --condition-query "AppTraces | where Message contains 'login failed'" \
+            --window-size 5m \
+            --evaluation-frequency 5m \
+            --action-groups $ACTION_GROUP_ID \
+            --description "Alert on multiple failed login attempts"
+          
+          echo "✅ Log query alerts created"
+
+      - name: Deploy monitoring dashboard
+        run: |
+          echo "Creating Azure Dashboard..."
+          
+          ENV=${{ github.event.inputs.environment }}
+          
+          cat > dashboard.json << 'EOF'
+{
+  "properties": {
+    "lenses": [
+      {
+        "order": 0,
+        "parts": [
+          {
+            "position": {"x": 0, "y": 0, "colSpan": 6, "rowSpan": 4},
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+              "settings": {
+                "content": {
+                  "chartTitle": "Request Rate",
+                  "visualization": "timechart"
+                }
+              }
+            }
+          },
+          {
+            "position": {"x": 6, "y": 0, "colSpan": 6, "rowSpan": 4},
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+              "settings": {
+                  "content": {
+                  "chartTitle": "Response Time (P95)",
+                  "visualization": "timechart"
+                }
+              }
+            }
+          },
+          {
+            "position": {"x": 0, "y": 4, "colSpan": 6, "rowSpan": 4},
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+              "settings": {
+                "content": {
+                  "chartTitle": "Error Rate",
+                  "visualization": "timechart"
+                }
+              }
+            }
+          },
+          {
+            "position": {"x": 6, "y": 4, "colSpan": 6, "rowSpan": 4},
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+              "settings": {
+                "content": {
+                  "chartTitle": "Active Users",
+                  "visualization": "timechart"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "model": {
+        "timeRange": {"type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"}
+      }
+    }
+  },
+  "name": "patio-$ENV-dashboard",
+  "type": "Microsoft.Portal/dashboards",
+  "location": "${{ env.LOCATION }}",
+  "tags": {
+    "hidden-title": "Patio $ENV Dashboard"
+  }
+}
+EOF
+          
+          az portal dashboard create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "dashboard-patio-$ENV" \
+            --input-path dashboard.json
+          
+          echo "✅ Dashboard created"
+
+      - name: Configure VM log shipping
+        run: |
+          echo "Configuring log shipping from VMs..."
+          
+          # Get Log Analytics workspace ID and key
+          WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.LOG_ANALYTICS_NAME }} \
+            --query primarySharedKey -o tsv)
+          
+          WORKSPACE_ID_FULL=$(az monitor log-analytics workspace show \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.LOG_ANALYTICS_NAME }} \
+            --query customerId -o tsv)
+          
+          # Install Azure Monitor agent on all VMs
+          VM_IDS=$(az vm list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[?contains(name, 'web-vm')].id" -o tsv)
+          
+          for VM_ID in $VM_IDS; do
+            echo "Installing Azure Monitor agent on VM: $VM_ID"
+            
+            az vm extension set \
+              --ids $VM_ID \
+              --name AzureMonitorLinuxAgent \
+              --publisher Microsoft.Azure.Monitor \
+              --settings "{\"workspaceId\":\"$WORKSPACE_ID_FULL\"}" \
+              --protected-settings "{\"workspaceKey\":\"$WORKSPACE_KEY\"}"
+          done
+          
+          echo "✅ VM log shipping configured"
+
+      - name: Configure custom log collection
+        run: |
+          echo "Configuring custom log collection..."
+          
+          # Configure data collection rules for Apache, PHP, MySQL logs
+          az monitor data-collection rule create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "dcr-patio-${{ github.event.inputs.environment }}" \
+            --location ${{ env.LOCATION }} \
+            --rule-file ./artifacts/applications/patio/observability/data-collection-rule.json
+          
+          echo "✅ Custom log collection configured"
+
+      - name: Store monitoring configuration in Key Vault
+        run: |
+          echo "Storing Application Insights key in Key Vault..."
+          
+          ENV=${{ github.event.inputs.environment }}
+          
+          az keyvault secret set \
+            --vault-name "kv-patio-$ENV" \
+            --name "applicationinsights-instrumentation-key" \
+            --value "${{ env.INSTRUMENTATION_KEY }}"
+          
+          echo "✅ Monitoring configuration stored"
+
+      - name: Validation
+        run: |
+          echo "Validating observability setup..."
+          
+          # Check Log Analytics workspace exists
+          az monitor log-analytics workspace show \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.LOG_ANALYTICS_NAME }} \
+            > /dev/null
+          
+          # Check Application Insights exists
+          az monitor app-insights component show \
+            --app ${{ env.APP_INSIGHTS_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            > /dev/null
+          
+          # Check alerts exist
+          ALERT_COUNT=$(az monitor metrics alert list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "length(@)")
+          
+          if [ "$ALERT_COUNT" -lt 3 ]; then
+            echo "❌ Expected at least 3 alerts, found $ALERT_COUNT"
+            exit 1
+          fi
+          
+          echo "✅ Observability validation passed"
+          echo "Alerts configured: $ALERT_COUNT"
+
+      - name: Output monitoring URLs
+        run: |
+          ENV=${{ github.event.inputs.environment }}
+          
+          echo "=== Observability Setup Complete ==="
+          echo ""
+          echo "Log Analytics Workspace: ${{ env.LOG_ANALYTICS_NAME }}"
+          echo "Application Insights: ${{ env.APP_INSIGHTS_NAME }}"
+          echo ""
+          echo "Dashboards:"
+          echo "  - Azure Portal: https://portal.azure.com/#@${{ secrets.AZURE_TENANT_ID }}/dashboard"
+          echo "  - Application Insights: https://portal.azure.com/#resource${{ env.APP_INSIGHTS_NAME }}"
+          echo ""
+          echo "Alerts configured: CPU, Error Rate, Slow Response, Application Errors, Failed Logins"
+          echo "Action group email: ${{ secrets.ADMIN_EMAIL }}"

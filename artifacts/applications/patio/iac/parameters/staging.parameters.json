@@ -1,0 +1,154 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "staging"
+    },
+    "location": {
+      "value": "eastus",
+      "metadata": {
+        "comment": "US region only per comp-001 (data residency requirement)"
+      }
+    },
+    "applicationName": {
+      "value": "patio"
+    },
+    "resourceGroupName": {
+      "value": "rg-patio-staging-eastus"
+    },
+    
+    "vnetAddressPrefix": {
+      "value": "10.1.0.0/16",
+      "metadata": {
+        "comment": "Different address space from dev to allow VNet peering if needed"
+      }
+    },
+    "webSubnetPrefix": {
+      "value": "10.1.1.0/24"
+    },
+    "databaseSubnetPrefix": {
+      "value": "10.1.2.0/24"
+    },
+    "cacheSubnetPrefix": {
+      "value": "10.1.3.0/24"
+    },
+    
+    "vmCount": {
+      "value": 2,
+      "metadata": {
+        "comment": "2 VMs for production-like testing with load balancer"
+      }
+    },
+    "vmSize": {
+      "value": "Standard_D2s_v3",
+      "metadata": {
+        "comment": "Production SKU for accurate performance testing (per compute-001 v2.0.0)"
+      }
+    },
+    "vmAdminUsername": {
+      "value": "azureuser"
+    },
+    "enableLoadBalancer": {
+      "value": true,
+      "metadata": {
+        "comment": "Load balancer required for multi-VM deployment"
+      }
+    },
+    
+    "mysqlSkuName": {
+      "value": "Standard_D2ds_v4",
+      "metadata": {
+        "comment": "Standard tier matching production for realistic testing"
+      }
+    },
+    "mysqlSkuTier": {
+      "value": "GeneralPurpose"
+    },
+    "mysqlStorageSizeGB": {
+      "value": 100,
+      "metadata": {
+        "comment": "Production-like storage capacity"
+      }
+    },
+    "mysqlBackupRetentionDays": {
+      "value": 7,
+      "metadata": {
+        "comment": "7-day retention per stor-001 v2.0.0"
+      }
+    },
+    "mysqlVersion": {
+      "value": "8.0.21"
+    },
+    "mysqlAdminUsername": {
+      "value": "patiodbadmin"
+    },
+    
+    "redisSku": {
+      "value": "Standard",
+      "metadata": {
+        "comment": "Standard tier for production-like testing"
+      }
+    },
+    "redisFamily": {
+      "value": "C"
+    },
+    "redisCapacity": {
+      "value": 1,
+      "metadata": {
+        "comment": "C1 = 1GB cache, matches production (~$70/month)"
+      }
+    },
+    
+    "storageAccountSku": {
+      "value": "Standard_LRS",
+      "metadata": {
+        "comment": "Standard LRS per stor-001 v2.0.0 (non-critical tier)"
+      }
+    },
+    "storageAccountKind": {
+      "value": "StorageV2"
+    },
+    
+    "keyVaultSku": {
+      "value": "standard",
+      "metadata": {
+        "comment": "Standard tier (matches production)"
+      }
+    },
+    
+    "enableMonitoring": {
+      "value": true,
+      "metadata": {
+        "comment": "Full monitoring stack for testing observability (per obs-001)"
+      }
+    },
+    "logRetentionDays": {
+      "value": 90,
+      "metadata": {
+        "comment": "90-day retention per audit-001"
+      }
+    },
+    
+    "tags": {
+      "value": {
+        "Environment": "staging",
+        "Application": "patio",
+        "CostCenter": "engineering",
+        "Compliance": "NIST-800-171",
+        "Tier": "application",
+        "Workload": "non-critical",
+        "Owner": "platform-team",
+        "ManagedBy": "bicep-iac",
+        "Purpose": "pre-production-testing"
+      }
+    },
+    
+    "monthlyBudgetLimit": {
+      "value": 75,
+      "metadata": {
+        "comment": "Staging cost target <$75/month (optimized by deallocating when not testing)"
+      }
+    }
+  }
+}

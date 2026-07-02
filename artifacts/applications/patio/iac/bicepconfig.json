@@ -1,0 +1,114 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Azure/bicep/main/schemas/bicep.schema.json",
+  "analyzers": {
+    "core": {
+      "verbose": false,
+      "enabled": true,
+      "rules": {
+        "no-hardcoded-env-urls": {
+          "level": "warning",
+          "description": "Environment URLs should not be hard-coded. Use parameters or variables."
+        },
+        "no-unused-params": {
+          "level": "warning",
+          "description": "Parameters should be used in the template."
+        },
+        "no-unused-vars": {
+          "level": "warning",
+          "description": "Variables should be used in the template."
+        },
+        "prefer-interpolation": {
+          "level": "warning",
+          "description": "Use string interpolation instead of concat function."
+        },
+        "secure-parameter-default": {
+          "level": "error",
+          "description": "Secure parameters should not have default values."
+        },
+        "simplify-interpolation": {
+          "level": "warning",
+          "description": "Simplify string interpolation when possible."
+        },
+        "protect-commandtoexecute-secrets": {
+          "level": "error",
+          "description": "Secrets should not be exposed in commandToExecute properties."
+        },
+        "use-stable-vm-image": {
+          "level": "warning",
+          "description": "Use stable VM image versions instead of 'latest'."
+        },
+        "explicit-values-for-loc-params": {
+          "level": "off",
+          "description": "Location parameters should have explicit values (disabled for multi-region support)."
+        },
+        "no-loc-expr-outside-params": {
+          "level": "warning",
+          "description": "Location expressions should only be used in parameters."
+        },
+        "outputs-should-not-contain-secrets": {
+          "level": "error",
+          "description": "Outputs should not contain secure values."
+        },
+        "use-resource-id-functions": {
+          "level": "warning",
+          "description": "Use resource ID functions instead of string concatenation."
+        },
+        "admin-username-should-not-be-literal": {
+          "level": "warning",
+          "description": "Admin username should not be a literal value - use parameters."
+        },
+        "no-hardcoded-location": {
+          "level": "warning",
+          "description": "Location should not be hard-coded - use parameters or resourceGroup().location."
+        },
+        "no-unnecessary-dependson": {
+          "level": "warning",
+          "description": "Remove unnecessary explicit dependsOn declarations."
+        },
+        "use-recent-api-versions": {
+          "level": "warning",
+          "description": "Use recent API versions for resources (within last 2 years)."
+        },
+        "decompiler-cleanup": {
+          "level": "warning",
+          "description": "Cleanup recommended after decompiling ARM templates."
+        },
+        "prefer-unquoted-property-names": {
+          "level": "off",
+          "description": "Prefer unquoted property names (disabled for consistency)."
+        }
+      }
+    }
+  },
+  "formatting": {
+    "indentKind": "Space",
+    "indentSize": 2,
+    "insertFinalNewline": true
+  },
+  "experimentalFeaturesEnabled": {
+    "assertions": true,
+    "symbolicNameCodegen": true,
+    "extensibility": true,
+    "resourceTypedPointers": true,
+    "sourceMapping": true,
+    "userDefinedFunctions": true,
+    "dynamicTypeLoading": true,
+    "extensionRegistry": true,
+    "optionalModuleNames": true,
+    "localDeploy": false
+  },
+  "cloud": {
+    "currentProfile": "AzureCloud",
+    "profiles": {
+      "AzureCloud": {
+        "resourceManagerEndpoint": "https://management.azure.com",
+        "authenticationScope": "https://management.azure.com/.default"
+      }
+    },
+    "credentialPrecedence": [
+      "AzureCLI",
+      "AzurePowerShell",
+      "Environment"
+    ]
+  }
+}

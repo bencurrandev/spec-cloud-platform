@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "7469944827321490090"
+      "version": "0.40.2.10011",
+      "templateHash": "14613567157384001706"
     }
   },
   "parameters": {
@@ -167,7 +167,7 @@
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('serverName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2849,21 +2849,21 @@
       "metadata": {
         "description": "Resource ID of the MySQL server"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2022-09-01').outputs.resourceId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2025-04-01').outputs.resourceId.value]"
     },
     "serverName": {
       "type": "string",
       "metadata": {
         "description": "Name of the MySQL server"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2022-09-01').outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2025-04-01').outputs.name.value]"
     },
     "fqdn": {
       "type": "string",
       "metadata": {
         "description": "Fully qualified domain name (FQDN) of the MySQL server"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2022-09-01').outputs.fqdn.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('serverName'))), '2025-04-01').outputs.fqdn.value]"
     },
     "location": {
       "type": "string",

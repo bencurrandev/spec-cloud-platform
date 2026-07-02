@@ -1,0 +1,211 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "prod"
+    },
+    "location": {
+      "value": "eastus",
+      "metadata": {
+        "comment": "US region only per comp-001 (data residency requirement for NIST 800-171)"
+      }
+    },
+    "applicationName": {
+      "value": "patio"
+    },
+    "resourceGroupName": {
+      "value": "rg-patio-prod-eastus"
+    },
+    
+    "vnetAddressPrefix": {
+      "value": "10.2.0.0/16",
+      "metadata": {
+        "comment": "Production VNet with distinct address space"
+      }
+    },
+    "webSubnetPrefix": {
+      "value": "10.2.1.0/24"
+    },
+    "databaseSubnetPrefix": {
+      "value": "10.2.2.0/24"
+    },
+    "cacheSubnetPrefix": {
+      "value": "10.2.3.0/24"
+    },
+    
+    "vmCount": {
+      "value": 2,
+      "metadata": {
+        "comment": "2 VMs initially, auto-scale to 3 VMs based on CPU >70% (configured separately)"
+      }
+    },
+    "vmSize": {
+      "value": "Standard_D2s_v3",
+      "metadata": {
+        "comment": "Approved SKU for non-critical tier (per compute-001 v2.0.0)"
+      }
+    },
+    "vmAdminUsername": {
+      "value": "azureuser"
+    },
+    "enableLoadBalancer": {
+      "value": true,
+      "metadata": {
+        "comment": "Standard load balancer for high availability and horizontal scaling"
+      }
+    },
+    
+    "mysqlSkuName": {
+      "value": "Standard_D2ds_v4",
+      "metadata": {
+        "comment": "Standard tier for production workload (~$50/month)"
+      }
+    },
+    "mysqlSkuTier": {
+      "value": "GeneralPurpose"
+    },
+    "mysqlStorageSizeGB": {
+      "value": 100,
+      "metadata": {
+        "comment": "100GB with auto-grow enabled for production data growth"
+      }
+    },
+    "mysqlStorageAutoGrow": {
+      "value": true,
+      "metadata": {
+        "comment": "Enable auto-grow to prevent storage exhaustion"
+      }
+    },
+    "mysqlBackupRetentionDays": {
+      "value": 7,
+      "metadata": {
+        "comment": "7-day retention per stor-001 v2.0.0"
+      }
+    },
+    "mysqlVersion": {
+      "value": "8.0.21"
+    },
+    "mysqlAdminUsername": {
+      "value": "patiodbadmin"
+    },
+    
+    "redisSku": {
+      "value": "Standard",
+      "metadata": {
+        "comment": "Standard tier for production with data persistence and replication"
+      }
+    },
+    "redisFamily": {
+      "value": "C"
+    },
+    "redisCapacity": {
+      "value": 1,
+      "metadata": {
+        "comment": "C1 = 1GB cache, sufficient for 10k users (~$70/month)"
+      }
+    },
+    "redisEnableNonSslPort": {
+      "value": false,
+      "metadata": {
+        "comment": "Disable non-SSL port, enforce TLS 1.2+ per dp-001 v1.0.0"
+      }
+    },
+    "redisMinimumTlsVersion": {
+      "value": "1.2",
+      "metadata": {
+        "comment": "TLS 1.2 minimum per dp-001 v1.0.0"
+      }
+    },
+    
+    "storageAccountSku": {
+      "value": "Standard_LRS",
+      "metadata": {
+        "comment": "Standard LRS per stor-001 v2.0.0 (non-critical tier, 3 copies in datacenter)"
+      }
+    },
+    "storageAccountKind": {
+      "value": "StorageV2"
+    },
+    "enableCdn": {
+      "value": true,
+      "metadata": {
+        "comment": "Azure CDN for optimized photo delivery (reduce bandwidth costs)"
+      }
+    },
+    
+    "keyVaultSku": {
+      "value": "standard",
+      "metadata": {
+        "comment": "Standard tier (Premium with HSM: +$180/month, exceeds budget)"
+      }
+    },
+    "keyVaultEnableSoftDelete": {
+      "value": true,
+      "metadata": {
+        "comment": "Required for production (90-day soft delete retention)"
+      }
+    },
+    "keyVaultEnablePurgeProtection": {
+      "value": true,
+      "metadata": {
+        "comment": "Prevent permanent deletion of secrets in production"
+      }
+    },
+    
+    "enableMonitoring": {
+      "value": true,
+      "metadata": {
+        "comment": "Full monitoring: Log Analytics, Application Insights, alerts (per obs-001)"
+      }
+    },
+    "logRetentionDays": {
+      "value": 90,
+      "metadata": {
+        "comment": "90-day retention per audit-001"
+      }
+    },
+    "enableAlerts": {
+      "value": true,
+      "metadata": {
+        "comment": "Production alerts for service health, performance, cost"
+      }
+    },
+    
+    "tags": {
+      "value": {
+        "Environment": "production",
+        "Application": "patio",
+        "CostCenter": "revenue-operations",
+        "Compliance": "NIST-800-171",
+        "Tier": "application",
+        "Workload": "non-critical",
+        "CriticalityLevel": "medium",
+        "Owner": "platform-team",
+        "ManagedBy": "bicep-iac",
+        "DataClassification": "customer-data",
+        "BackupEnabled": "true"
+      }
+    },
+    
+    "monthlyBudgetLimit": {
+      "value": 100,
+      "metadata": {
+        "comment": "Production cost target <$100/month per cost-001 v2.0.0 (non-critical tier)"
+      }
+    },
+    
+    "sliAvailabilityTarget": {
+      "value": 99.0,
+      "metadata": {
+        "comment": "99% availability SLI target during business hours (6am-midnight)"
+      }
+    },
+    "sloResponseTimeP95Ms": {
+      "value": 200,
+      "metadata": {
+        "comment": "Search operations <200ms p95 response time target"
+      }
+    }
+  }
+}

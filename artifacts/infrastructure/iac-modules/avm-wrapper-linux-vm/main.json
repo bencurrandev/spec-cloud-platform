@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "16278283217324505358"
+      "version": "0.40.2.10011",
+      "templateHash": "9644548358362715632"
     }
   },
   "parameters": {
@@ -234,7 +234,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('vmName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -9366,14 +9366,14 @@
       "metadata": {
         "description": "Resource ID of the virtual machine"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2022-09-01').outputs.resourceId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2025-04-01').outputs.resourceId.value]"
     },
     "vmName": {
       "type": "string",
       "metadata": {
         "description": "Name of the virtual machine"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2022-09-01').outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2025-04-01').outputs.name.value]"
     },
     "privateIpAddress": {
       "type": "string",
@@ -9394,7 +9394,7 @@
       "metadata": {
         "description": "System-assigned managed identity principal ID"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2022-09-01').outputs.systemAssignedMIPrincipalId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vmName'))), '2025-04-01').outputs.systemAssignedMIPrincipalId.value]"
     },
     "location": {
       "type": "string",

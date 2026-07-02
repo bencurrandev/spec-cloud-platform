@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "4661188004922262275"
+      "version": "0.40.2.10011",
+      "templateHash": "9141293192142021346"
     }
   },
   "parameters": {
@@ -166,7 +166,7 @@
   "resources": {
     "storageAccount": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('storageAccountName'))]",
       "properties": {
         "expressionEvaluationOptions": {

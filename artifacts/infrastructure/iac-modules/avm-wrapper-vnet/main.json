@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "7931639674534332196"
+      "version": "0.40.2.10011",
+      "templateHash": "3019319642337364591"
     }
   },
   "parameters": {
@@ -13,6 +13,18 @@
       "type": "string",
       "metadata": {
         "description": "Name of the virtual network"
+      }
+    },
+    "workloadCriticality": {
+      "type": "string",
+      "defaultValue": "non-critical",
+      "allowedValues": [
+        "critical",
+        "non-critical",
+        "dev-test"
+      ],
+      "metadata": {
+        "description": "Workload criticality tier per business/cost v2.0.0"
       }
     },
     "addressPrefix": {
@@ -91,14 +103,17 @@
       "managedBy": "bicep",
       "tier": "infrastructure",
       "module": "avm-wrapper-vnet",
-      "version": "1.0.0"
+      "version": "2.0.0",
+      "workloadCriticality": "[parameters('workloadCriticality')]",
+      "multiZoneRequired": "[if(equals(parameters('workloadCriticality'), 'critical'), 'true', 'false')]",
+      "costSpec": "business/cost-001 v2.0.0"
     },
     "tags": "[union(variables('defaultTags'), parameters('additionalTags'))]"
   },
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('vnetName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1771,14 +1786,14 @@
       "metadata": {
         "description": "Resource ID of the virtual network"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2022-09-01').outputs.resourceId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2025-04-01').outputs.resourceId.value]"
     },
     "vnetName": {
       "type": "string",
       "metadata": {
         "description": "Name of the virtual network"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2022-09-01').outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2025-04-01').outputs.name.value]"
     },
     "addressPrefix": {
       "type": "string",
@@ -1792,7 +1807,7 @@
       "metadata": {
         "description": "Subnet resource IDs"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2022-09-01').outputs.subnetResourceIds.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetName'))), '2025-04-01').outputs.subnetResourceIds.value]"
     },
     "subnetNames": {
       "type": "array",

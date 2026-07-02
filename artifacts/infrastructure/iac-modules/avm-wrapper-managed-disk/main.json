@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "7787016982254234423"
+      "version": "0.40.2.10011",
+      "templateHash": "9782161813517492167"
     }
   },
   "parameters": {
@@ -13,6 +13,18 @@
       "type": "string",
       "metadata": {
         "description": "Name of the managed disk"
+      }
+    },
+    "workloadCriticality": {
+      "type": "string",
+      "defaultValue": "non-critical",
+      "allowedValues": [
+        "critical",
+        "non-critical",
+        "dev-test"
+      ],
+      "metadata": {
+        "description": "Workload criticality tier per business/cost v2.0.0"
       }
     },
     "environment": {
@@ -47,7 +59,7 @@
     },
     "diskSku": {
       "type": "string",
-      "defaultValue": "[if(equals(parameters('environment'), 'dev'), 'StandardSSD_LRS', 'Premium_LRS')]",
+      "defaultValue": "[if(equals(parameters('workloadCriticality'), 'critical'), 'Premium_ZRS', if(equals(parameters('workloadCriticality'), 'non-critical'), 'StandardSSD_LRS', 'Standard_LRS'))]",
       "allowedValues": [
         "Standard_LRS",
         "StandardSSD_LRS",
@@ -57,7 +69,7 @@
         "UltraSSD_LRS"
       ],
       "metadata": {
-        "description": "Disk SKU (Standard_LRS for dev, Premium_LRS for prod)"
+        "description": "Disk SKU per workload criticality (Critical: Premium_ZRS, Non-Critical: StandardSSD_LRS, Dev-Test: Standard_LRS)"
       }
     },
     "createOption": {
@@ -107,14 +119,16 @@
       "managedBy": "bicep",
       "tier": "infrastructure",
       "module": "avm-wrapper-managed-disk",
-      "version": "1.0.0"
+      "version": "2.0.0",
+      "workloadCriticality": "[parameters('workloadCriticality')]",
+      "costSpec": "business/cost-001 v2.0.0"
     },
     "tags": "[union(variables('defaultTags'), parameters('additionalTags'))]"
   },
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('diskName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -707,14 +721,14 @@
       "metadata": {
         "description": "Resource ID of the managed disk"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('diskName'))), '2022-09-01').outputs.resourceId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('diskName'))), '2025-04-01').outputs.resourceId.value]"
     },
     "diskName": {
       "type": "string",
       "metadata": {
         "description": "Name of the managed disk"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('diskName'))), '2022-09-01').outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('diskName'))), '2025-04-01').outputs.name.value]"
     },
     "diskSizeGB": {
       "type": "int",

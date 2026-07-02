@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.37.4.10188",
-      "templateHash": "14694050348765840294"
+      "version": "0.40.2.10011",
+      "templateHash": "5890901518861570943"
     }
   },
   "parameters": {
@@ -123,7 +123,7 @@
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "[format('{0}-deployment', parameters('nsgName'))]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -787,14 +787,14 @@
       "metadata": {
         "description": "Resource ID of the network security group"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgName'))), '2022-09-01').outputs.resourceId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgName'))), '2025-04-01').outputs.resourceId.value]"
     },
     "nsgName": {
       "type": "string",
       "metadata": {
         "description": "Name of the network security group"
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgName'))), '2022-09-01').outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgName'))), '2025-04-01').outputs.name.value]"
     },
     "location": {
       "type": "string",
